@@ -1,6 +1,8 @@
 MAX_CHARS = 500
 
 def summarize(text: str) -> str:
+    if not text:
+        return ""
     text = text.strip()
     if len(text) <= MAX_CHARS:
         return text

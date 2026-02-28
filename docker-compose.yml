@@ -9,3 +9,14 @@ services:
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import bot"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s

@@ -5,9 +5,15 @@ import signal
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import Bot
 from bot.db import Database
-from bot.translator.gemma import GemmaTranslator
+from bot.translator.gemma import GemmaTranslator, OLLAMA_URL
 from bot.poster import Poster
 from bot.scheduler import run_once
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 logging.basicConfig(
     level=logging.INFO,
@@ -15,11 +21,33 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+_STARTUP_TIMEOUT = float(os.environ.get("STARTUP_TIMEOUT", "300"))
+
 def _require_env(name: str) -> str:
     value = os.environ.get(name)
     if not value:
         raise RuntimeError(f"Missing required environment variable: {name}")
     return value
+
+async def _check_ollama():
+    """Verify Ollama is reachable."""
+    import httpx
+    base = OLLAMA_URL.rsplit("/", 2)[0]  # strip /api/generate
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(base)
+            resp.raise_for_status()
+        logger.info("Ollama health check passed.")
+    except Exception as e:
+        logger.warning(f"Ollama not reachable at {base}: {e}")
+
+async def _check_telegram(bot: Bot):
+    """Verify Telegram bot token is valid."""
+    try:
+        me = await bot.get_me()
+        logger.info(f"Telegram health check passed: @{me.username}")
+    except Exception as e:
+        logger.warning(f"Telegram health check failed: {e}")
 
 async def main():
     bot_token = _require_env("TELEGRAM_BOT_TOKEN")
@@ -42,8 +70,16 @@ async def main():
     for sig in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(sig, _handle_signal)
 
-    # Run immediately on startup before scheduling
-    await run_once(db, translator, poster)
+    # Startup health checks
+    await asyncio.gather(_check_ollama(), _check_telegram(bot))
+
+    # Run immediately on startup with timeout
+    try:
+        await asyncio.wait_for(run_once(db, translator, poster), timeout=_STARTUP_TIMEOUT)
+    except asyncio.TimeoutError:
+        logger.error(f"Initial run_once timed out after {_STARTUP_TIMEOUT}s")
+    except Exception as e:
+        logger.error(f"Initial run_once failed: {e}")
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
@@ -59,7 +95,7 @@ async def main():
     await stop_event.wait()
 
     logger.info("Shutting down...")
-    scheduler.shutdown(wait=False)
+    scheduler.shutdown(wait=True)
     await translator.close()
     await db.close()
     await bot.close()

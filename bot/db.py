@@ -39,10 +39,11 @@ class Database:
             self._conn = None
 
     async def is_seen(self, url: str) -> bool:
-        async with self._conn.execute(
-            "SELECT 1 FROM seen_urls WHERE url = ?", (url,)
-        ) as cursor:
-            return await cursor.fetchone() is not None
+        async with self._lock:
+            async with self._conn.execute(
+                "SELECT 1 FROM seen_urls WHERE url = ?", (url,)
+            ) as cursor:
+                return await cursor.fetchone() is not None
 
     async def mark_seen(self, url: str, title: str = ""):
         async with self._lock:
@@ -56,7 +57,7 @@ class Database:
     async def prune(self, keep_days: int = 30):
         async with self._lock:
             await self._conn.execute(
-                "DELETE FROM seen_urls WHERE posted_at < datetime('now', ?)",
+                "DELETE FROM seen_urls WHERE posted_at IS NULL OR posted_at < datetime('now', ?)",
                 (f"-{keep_days} days",),
             )
             await self._conn.commit()

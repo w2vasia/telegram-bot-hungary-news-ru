@@ -148,14 +148,16 @@ async def test_seen_urls_checked_in_parallel():
     poster.post.assert_called_once()
 
 @pytest.mark.asyncio
-async def test_does_not_mark_seen_when_post_fails():
+async def test_marks_seen_before_post_to_prevent_duplicates():
     db, translator, poster, articles = make_deps()
     poster.post = AsyncMock(side_effect=Exception("Telegram error"))
 
     with patch("bot.scheduler.fetch_all", return_value=articles):
         await run_once(db, translator, poster)
 
-    db.mark_seen.assert_not_called()
+    # mark_seen called before post attempt to guarantee dedup
+    db.mark_seen.assert_called_once()
+    poster.post.assert_called_once()
 
 @pytest.mark.asyncio
 async def test_aborts_gracefully_on_feed_fetch_failure():
