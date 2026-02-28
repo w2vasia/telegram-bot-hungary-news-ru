@@ -1,7 +1,9 @@
 # tests/test_db.py
-import pytest
 import aiosqlite
+import pytest
+
 from bot.db import Database
+
 
 @pytest.mark.asyncio
 async def test_url_not_seen_initially(tmp_path):
@@ -29,9 +31,9 @@ async def test_mark_seen_stores_title(tmp_path):
     db = Database(tmp_path / "test.db")
     await db.init()
     await db.mark_seen("https://example.com/a", title="Венгрия повысила налоги")
-    async with aiosqlite.connect(str(tmp_path / "test.db")) as conn:
-        async with conn.execute("SELECT title FROM seen_urls WHERE url = ?", ("https://example.com/a",)) as cur:
-            row = await cur.fetchone()
+    async with aiosqlite.connect(str(tmp_path / "test.db")) as conn, \
+               conn.execute("SELECT title FROM seen_urls WHERE url = ?", ("https://example.com/a",)) as cur:
+        row = await cur.fetchone()
     assert row[0] == "Венгрия повысила налоги"
 
 @pytest.mark.asyncio

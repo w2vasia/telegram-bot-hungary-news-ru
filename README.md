@@ -8,12 +8,12 @@ Telegram bot that polls Hungarian news sources every 30 minutes, translates arti
 
 ## How it works
 
-1. Fetches RSS feeds from 8 Hungarian news sources
-2. Translates article titles to Russian via a local Gemma model (Ollama)
-3. Deduplicates via SQLite — each URL is posted only once
+1. Fetches RSS feeds from 8 Hungarian news sources (concurrent, with socket timeouts)
+2. Filters already-seen URLs in parallel (fault-tolerant — individual failures don't kill the cycle)
+3. Translates article titles to Russian via a local Gemma model (Ollama, with retry on failure)
 4. Cross-source dedup — compares translated titles using fuzzy matching (`rapidfuzz`, 80% threshold, 24h window) so the same story from different outlets is posted only once
 5. Tags each article with 1–3 Russian hashtags from a fixed taxonomy via LLM
-6. Posts a ≤500-character summary + tags + source link to the Telegram channel
+6. Marks article as seen, then posts a ≤500-character summary + tags + source link to the Telegram channel (handles Telegram 429 rate limits)
 
 ## Sources
 
@@ -31,15 +31,17 @@ Telegram bot that polls Hungarian news sources every 30 minutes, translates arti
 ## Stack
 
 - Python 3.12
-- feedparser — RSS fetching
+- feedparser — RSS fetching (with socket timeouts)
 - httpx — HTTP client (Ollama API)
 - Ollama (`translategemma:latest`) — local translation + tagging
+- tenacity — retry with exponential backoff on Ollama calls
 - deepl — alternative translator (optional)
-- python-telegram-bot — posting
+- python-telegram-bot — posting (with 429 retry handling)
+- python-dotenv — `.env` file loading for local dev
 - APScheduler — 30-min polling
-- aiosqlite — deduplication
+- aiosqlite — deduplication (with asyncio.Lock)
 - rapidfuzz — cross-source fuzzy title dedup
-- Docker / docker-compose
+- Docker / docker-compose (resource limits, healthcheck)
 
 ## Setup
 
@@ -63,10 +65,14 @@ docker compose up --build
 
 ### Environment variables
 
-| Variable | Description |
-|----------|-------------|
-| `TELEGRAM_BOT_TOKEN` | Bot token from @BotFather |
-| `TELEGRAM_CHANNEL_ID` | Channel username, e.g. `@hungary_news_ru` |
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `TELEGRAM_BOT_TOKEN` | yes | — | Bot token from @BotFather |
+| `TELEGRAM_CHANNEL_ID` | yes | — | Channel username, e.g. `@hungary_news_ru` |
+| `OLLAMA_URL` | no | `http://host.docker.internal:11434/api/generate` | Ollama API endpoint |
+| `OLLAMA_TIMEOUT` | no | `60` | Ollama request timeout (seconds) |
+| `POST_DELAY` | no | `3` | Delay between Telegram posts (seconds) |
+| `STARTUP_TIMEOUT` | no | `300` | Max time for initial run_once (seconds) |
 
 ## Project structure
 
@@ -94,7 +100,11 @@ Implement the `Translator` interface in `bot/translator/`:
 from bot.translator.base import Translator
 
 class MyTranslator(Translator):
-    async def translate(self, text: str, source_lang: str, target_lang: str) -> str:
+    async def translate(self, text: str, source_lang: str = "HU", target_lang: str = "RU") -> str:
+        ...
+
+    # Optional: implement generate() to support LLM tagging
+    async def generate(self, prompt: str) -> str:
         ...
 ```
 

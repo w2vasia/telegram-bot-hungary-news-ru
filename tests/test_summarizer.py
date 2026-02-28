@@ -1,6 +1,7 @@
 # tests/test_summarizer.py
 from bot.summarizer import summarize
 
+
 def test_short_text_unchanged():
     text = "Короткий текст."
     assert summarize(text) == text

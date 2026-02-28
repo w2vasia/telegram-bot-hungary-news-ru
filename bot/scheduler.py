@@ -1,19 +1,37 @@
 import asyncio
 import logging
+import os
+
 from rapidfuzz.fuzz import token_sort_ratio
+
 from bot.db import Database
 from bot.feeds import fetch_all
-from bot.summarizer import summarize
-from bot.translator.base import Translator
 from bot.poster import Poster
+from bot.summarizer import summarize
 from bot.tagger import get_tags
+from bot.translator.base import Translator
 
 logger = logging.getLogger(__name__)
 
 _SIMILARITY_THRESHOLD = 80
+_prune_fail_count = 0
+_PRUNE_FAIL_LIMIT = 10
+_POST_DELAY = float(os.environ.get("POST_DELAY", "3"))
 
 
 async def run_once(db: Database, translator: Translator, poster: Poster):
+    global _prune_fail_count
+    # Prune old entries periodically
+    try:
+        await db.prune()
+        _prune_fail_count = 0
+    except Exception as e:
+        _prune_fail_count += 1
+        if _prune_fail_count >= _PRUNE_FAIL_LIMIT:
+            logger.error(f"DB prune failed {_prune_fail_count} times consecutively: {e}")
+            raise
+        logger.warning(f"DB prune failed ({_prune_fail_count}/{_PRUNE_FAIL_LIMIT}): {e}")
+
     # Phase 1: Fetch all articles from all sources concurrently
     try:
         articles = await fetch_all()
@@ -23,8 +41,16 @@ async def run_once(db: Database, translator: Translator, poster: Poster):
     logger.info(f"Fetched {len(articles)} articles.")
 
     # Phase 2: Filter already-seen URLs in parallel
-    seen_flags = await asyncio.gather(*[db.is_seen(a.url) for a in articles])
-    new_articles = [a for a, seen in zip(articles, seen_flags) if not seen]
+    seen_results = await asyncio.gather(
+        *[db.is_seen(a.url) for a in articles], return_exceptions=True
+    )
+    new_articles = []
+    for article, result in zip(articles, seen_results):
+        if isinstance(result, Exception):
+            logger.warning(f"is_seen check failed for {article.url}: {result}")
+            new_articles.append(article)  # assume unseen on error
+        elif not result:
+            new_articles.append(article)
     logger.info(f"{len(new_articles)} new articles after URL filter.")
 
     if not new_articles:
@@ -39,14 +65,23 @@ async def run_once(db: Database, translator: Translator, poster: Poster):
             translated = await translator.translate(article.title)
 
             # Deduplicate against DB (last 24h)
-            if await db.find_similar(translated):
-                await db.mark_seen(article.url, title=translated)
-                logger.info(f"Skipped (DB duplicate): {article.url}")
-                continue
+            try:
+                if await db.find_similar(translated):
+                    try:
+                        await db.mark_seen(article.url, title=translated)
+                    except Exception as e:
+                        logger.warning(f"Failed to mark dupe seen {article.url}: {e}")
+                    logger.info(f"Skipped (DB duplicate): {article.url}")
+                    continue
+            except Exception as e:
+                logger.warning(f"find_similar failed for {article.url}: {e}")
 
             # Deduplicate within this batch
             if any(token_sort_ratio(translated, t) >= _SIMILARITY_THRESHOLD for t in accepted_titles):
-                await db.mark_seen(article.url, title=translated)
+                try:
+                    await db.mark_seen(article.url, title=translated)
+                except Exception as e:
+                    logger.warning(f"Failed to mark batch dupe seen {article.url}: {e}")
                 logger.info(f"Skipped (batch duplicate): {article.url}")
                 continue
 
@@ -58,20 +93,21 @@ async def run_once(db: Database, translator: Translator, poster: Poster):
 
     logger.info(f"{len(to_post)} unique articles to post.")
 
-    # Phase 4: Post verified unique articles
+    # Phase 4: Post verified unique articles — mark seen first to prevent duplicates
     for article, translated in to_post:
         try:
+            await db.mark_seen(article.url, title=translated)
+        except Exception as e:
+            logger.error(f"Failed to mark seen before post {article.url}: {e}")
+            continue  # skip posting if we can't guarantee dedup
+
+        try:
             summary = summarize(translated)
-            tags = await get_tags(article, translator)
+            tags = await get_tags(translated, translator)
             await poster.post(summary=summary, url=article.url, source=article.source, tags=tags)
         except Exception as e:
             logger.error(f"Failed to post {article.url}: {e}")
             continue
 
-        try:
-            await db.mark_seen(article.url, title=translated)
-        except Exception as e:
-            logger.error(f"Posted but failed to mark seen {article.url}: {e}")
-
         logger.info(f"Posted: {article.url}")
-        await asyncio.sleep(3)  # avoid Telegram flood control
+        await asyncio.sleep(_POST_DELAY)

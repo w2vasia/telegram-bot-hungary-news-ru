@@ -1,7 +1,9 @@
 # tests/test_translator.py
 import pytest
+
 from bot.translator.base import Translator
 from bot.translator.deepl import DeepLTranslator
+
 
 def test_translator_is_abstract():
     import inspect

@@ -1,6 +1,11 @@
 import asyncio
-import feedparser
+import logging
+import socket
 from dataclasses import dataclass
+
+import feedparser
+
+logger = logging.getLogger(__name__)
 
 SOURCES = [
     {"name": "Telex", "url": "https://telex.hu/rss"},
@@ -13,14 +18,30 @@ SOURCES = [
     {"name": "G7", "url": "https://telex.hu/rss/g7"},
 ]
 
+_FEED_TIMEOUT = 30
+
 @dataclass
 class Article:
     title: str
     url: str
     source: str
 
+def _parse_with_timeout(url: str):
+    old_timeout = socket.getdefaulttimeout()
+    try:
+        socket.setdefaulttimeout(_FEED_TIMEOUT)
+        return feedparser.parse(url)
+    finally:
+        socket.setdefaulttimeout(old_timeout)
+
 async def fetch_feed(source: dict) -> list[Article]:
-    feed = await asyncio.to_thread(feedparser.parse, source["url"])
+    feed = await asyncio.wait_for(
+        asyncio.to_thread(_parse_with_timeout, source["url"]),
+        timeout=_FEED_TIMEOUT + 5,
+    )
+    if feed.bozo and not feed.entries:
+        logger.warning(f"Feed {source['name']} failed: {feed.bozo_exception}")
+        return []
     articles = []
     for entry in feed.entries:
         url = entry.get("link", "")
@@ -37,7 +58,7 @@ async def fetch_all() -> list[Article]:
     articles = []
     for source, result in zip(SOURCES, results):
         if isinstance(result, Exception):
-            print(f"[feeds] error fetching {source['name']}: {result}")
+            logger.error(f"Error fetching {source['name']}: {result}")
         else:
             articles.extend(result)
     return articles
