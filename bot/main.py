@@ -32,7 +32,7 @@ def _require_env(name: str) -> str:
     return value
 
 async def _check_ollama():
-    """Verify Ollama is reachable."""
+    """Verify Ollama is reachable. Raises on failure."""
     import httpx
     base = OLLAMA_URL.rsplit("/", 2)[0]  # strip /api/generate
     try:
@@ -41,15 +41,15 @@ async def _check_ollama():
             resp.raise_for_status()
         logger.info("Ollama health check passed.")
     except Exception as e:
-        logger.warning(f"Ollama not reachable at {base}: {e}")
+        raise RuntimeError(f"Ollama not reachable at {base}: {e}") from e
 
 async def _check_telegram(bot: Bot):
-    """Verify Telegram bot token is valid."""
+    """Verify Telegram bot token is valid. Raises on failure."""
     try:
         me = await bot.get_me()
         logger.info(f"Telegram health check passed: @{me.username}")
     except Exception as e:
-        logger.warning(f"Telegram health check failed: {e}")
+        raise RuntimeError(f"Telegram health check failed: {e}") from e
 
 async def main():
     bot_token = _require_env("TELEGRAM_BOT_TOKEN")

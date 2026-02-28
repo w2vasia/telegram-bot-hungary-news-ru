@@ -4,8 +4,6 @@ services:
     env_file: .env
     volumes:
       - ./data:/app/data
-      - ./bot:/app/bot
-      - ./tests:/app/tests
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -15,7 +13,7 @@ services:
           cpus: "0.5"
           memory: 512M
     healthcheck:
-      test: ["CMD", "python", "-c", "import bot"]
+      test: ["CMD", "python", "-c", "import sqlite3; sqlite3.connect('data/seen.db').execute('SELECT 1').fetchone()"]
       interval: 60s
       timeout: 10s
       retries: 3

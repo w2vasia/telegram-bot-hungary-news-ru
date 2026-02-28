@@ -16,6 +16,7 @@ class Database:
     async def init(self):
         os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
         self._conn = await aiosqlite.connect(self.path)
+        await self._conn.execute("PRAGMA journal_mode=WAL")
         await self._conn.execute(
             "CREATE TABLE IF NOT EXISTS seen_urls (url TEXT PRIMARY KEY)"
         )
