@@ -5,8 +5,9 @@ class Poster:
         self._bot = bot
         self._channel_id = channel_id
 
-    async def post(self, summary: str, url: str):
-        text = f"{summary}\n\n<a href='{url}'>Читать полностью</a>"
+    async def post(self, summary: str, url: str, tags: list[str] | None = None):
+        tags_line = ("\n" + " ".join(tags)) if tags else ""
+        text = f"{summary}{tags_line}\n\n<a href='{url}'>Читать полностью</a>"
         await self._bot.send_message(
             chat_id=self._channel_id,
             text=text,
