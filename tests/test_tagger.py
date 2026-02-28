@@ -6,7 +6,7 @@ from bot.feeds import Article
 
 def test_categories_is_nonempty_frozenset():
     assert isinstance(CATEGORIES, frozenset)
-    assert len(CATEGORIES) > 0
+    assert len(CATEGORIES) == 27
 
 def test_categories_contains_expected_tags():
     assert "политика" in CATEGORIES
@@ -39,7 +39,7 @@ async def test_max_three_tags():
     mock_translator.translate = AsyncMock(return_value="политика экономика спорт культура мир")
     article = Article(title="T", url="http://x.com", source="Telex")
     tags = await get_tags(article, mock_translator)
-    assert len(tags) <= 3
+    assert len(tags) == 3
 
 @pytest.mark.asyncio
 async def test_returns_empty_on_error():
