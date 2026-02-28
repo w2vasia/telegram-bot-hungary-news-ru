@@ -26,9 +26,12 @@ class Article:
     url: str
     source: str
 
+_USER_AGENT = "Mozilla/5.0 (compatible; HungaryNewsBot/1.0; +https://t.me/hungary_news_ru)"
+
 def _parse_with_timeout(url: str):
     """Fetch and parse RSS with per-request timeout (thread-safe)."""
-    resp = urllib.request.urlopen(url, timeout=_FEED_TIMEOUT)
+    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+    resp = urllib.request.urlopen(req, timeout=_FEED_TIMEOUT)
     return feedparser.parse(resp.read())
 
 async def fetch_feed(source: dict) -> list[Article]:

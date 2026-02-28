@@ -90,6 +90,8 @@ async def main():
         minutes=30,
         args=[db, translator, poster],
         max_instances=1,
+        misfire_grace_time=900,  # run if ≤15 min late
+        coalesce=True,           # merge piled-up runs into one
     )
     scheduler.start()
     logger.info("Bot started. Polling every 30 minutes.")
