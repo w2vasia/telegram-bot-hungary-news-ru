@@ -1,5 +1,5 @@
 import feedparser
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 SOURCES = [
     {"name": "Telex", "url": "https://telex.hu/rss"},
@@ -17,6 +17,7 @@ class Article:
     title: str
     url: str
     source: str
+    raw_categories: list[str] = field(default_factory=list)
 
 async def fetch_feed(source: dict) -> list[Article]:
     feed = feedparser.parse(source["url"])
@@ -25,7 +26,13 @@ async def fetch_feed(source: dict) -> list[Article]:
         url = entry.get("link", "")
         title = entry.get("title", "")
         if url and title:
-            articles.append(Article(title=title, url=url, source=source["name"]))
+            raw_categories = [t.term for t in entry.get("tags", []) if t.get("term")]
+            articles.append(Article(
+                title=title,
+                url=url,
+                source=source["name"],
+                raw_categories=raw_categories,
+            ))
     return articles
 
 async def fetch_all() -> list[Article]:
