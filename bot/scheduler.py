@@ -15,7 +15,11 @@ _SIMILARITY_THRESHOLD = 80
 
 async def run_once(db: Database, translator: Translator, poster: Poster):
     # Phase 1: Fetch all articles from all sources concurrently
-    articles = await fetch_all()
+    try:
+        articles = await fetch_all()
+    except Exception as e:
+        logger.error(f"Feed fetch failed entirely: {e}")
+        return
     logger.info(f"Fetched {len(articles)} articles.")
 
     # Phase 2: Filter already-seen URLs in parallel
@@ -60,8 +64,14 @@ async def run_once(db: Database, translator: Translator, poster: Poster):
             summary = summarize(translated)
             tags = await get_tags(article, translator)
             await poster.post(summary=summary, url=article.url, source=article.source, tags=tags)
-            await db.mark_seen(article.url, title=translated)
-            logger.info(f"Posted: {article.url}")
-            await asyncio.sleep(3)  # avoid Telegram flood control
         except Exception as e:
             logger.error(f"Failed to post {article.url}: {e}")
+            continue
+
+        try:
+            await db.mark_seen(article.url, title=translated)
+        except Exception as e:
+            logger.error(f"Posted but failed to mark seen {article.url}: {e}")
+
+        logger.info(f"Posted: {article.url}")
+        await asyncio.sleep(3)  # avoid Telegram flood control

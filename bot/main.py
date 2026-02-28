@@ -59,6 +59,7 @@ async def main():
 
     logger.info("Shutting down...")
     scheduler.shutdown(wait=False)
+    await db.close()
     await bot.close()
 
 if __name__ == "__main__":

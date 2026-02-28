@@ -140,3 +140,21 @@ async def test_seen_urls_checked_in_parallel():
     # Only the new article gets translated and posted
     translator.translate.assert_called_once()
     poster.post.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_does_not_mark_seen_when_post_fails():
+    db, translator, poster, articles = make_deps()
+    poster.post = AsyncMock(side_effect=Exception("Telegram error"))
+
+    with patch("bot.scheduler.fetch_all", return_value=articles):
+        await run_once(db, translator, poster)
+
+    db.mark_seen.assert_not_called()
+
+@pytest.mark.asyncio
+async def test_aborts_gracefully_on_feed_fetch_failure():
+    db, translator, poster, _ = make_deps()
+    with patch("bot.scheduler.fetch_all", side_effect=Exception("network error")):
+        await run_once(db, translator, poster)
+    translator.translate.assert_not_called()
+    poster.post.assert_not_called()
