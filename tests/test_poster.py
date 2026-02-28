@@ -12,7 +12,7 @@ async def test_poster_sends_message():
     mock_bot.send_message.assert_called_once()
     call_kwargs = mock_bot.send_message.call_args.kwargs
     assert "Тестовая новость" in call_kwargs["text"]
-    assert "href='https://example.com/news'" in call_kwargs["text"]
+    assert 'href="https://example.com/news"' in call_kwargs["text"]
     assert call_kwargs["chat_id"] == "@testchannel"
 
 @pytest.mark.asyncio
@@ -34,7 +34,7 @@ async def test_poster_includes_tags_between_summary_and_link():
     text = mock_bot.send_message.call_args.kwargs["text"]
     summary_pos = text.index("Новость")
     tags_pos = text.index("#политика")
-    link_pos = text.index("href='https://example.com'")
+    link_pos = text.index('href="https://example.com"')
     assert summary_pos < tags_pos < link_pos
 
 @pytest.mark.asyncio
@@ -44,7 +44,7 @@ async def test_poster_no_tags_line_when_empty():
     poster = Poster(bot=mock_bot, channel_id="@testchannel")
     await poster.post(summary="Новость", url="https://example.com", tags=[])
     text = mock_bot.send_message.call_args.kwargs["text"]
-    expected = "Новость\n\n<a href='https://example.com'>Источник</a>"
+    expected = 'Новость\n\n<a href="https://example.com">Источник</a>'
     assert text == expected
 
 @pytest.mark.asyncio
@@ -54,4 +54,4 @@ async def test_poster_uses_source_name_as_link_title():
     poster = Poster(bot=mock_bot, channel_id="@testchannel")
     await poster.post(summary="Новость", url="https://index.hu/article", source="Index.hu")
     text = mock_bot.send_message.call_args.kwargs["text"]
-    assert "<a href='https://index.hu/article'>Index.hu</a>" in text
+    assert '<a href="https://index.hu/article">Index.hu</a>' in text

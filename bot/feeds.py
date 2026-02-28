@@ -1,3 +1,4 @@
+import asyncio
 import feedparser
 from dataclasses import dataclass
 
@@ -19,7 +20,7 @@ class Article:
     source: str
 
 async def fetch_feed(source: dict) -> list[Article]:
-    feed = feedparser.parse(source["url"])
+    feed = await asyncio.to_thread(feedparser.parse, source["url"])
     articles = []
     for entry in feed.entries:
         url = entry.get("link", "")
@@ -29,10 +30,14 @@ async def fetch_feed(source: dict) -> list[Article]:
     return articles
 
 async def fetch_all() -> list[Article]:
+    results = await asyncio.gather(
+        *[fetch_feed(source) for source in SOURCES],
+        return_exceptions=True,
+    )
     articles = []
-    for source in SOURCES:
-        try:
-            articles.extend(await fetch_feed(source))
-        except Exception as e:
-            print(f"[feeds] error fetching {source['name']}: {e}")
+    for source, result in zip(SOURCES, results):
+        if isinstance(result, Exception):
+            print(f"[feeds] error fetching {source['name']}: {result}")
+        else:
+            articles.extend(result)
     return articles

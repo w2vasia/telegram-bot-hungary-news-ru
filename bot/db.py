@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 import aiosqlite
 from rapidfuzz.fuzz import token_sort_ratio
@@ -7,6 +8,7 @@ class Database:
         self.path = str(path)
 
     async def init(self):
+        os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
         async with aiosqlite.connect(self.path) as db:
             await db.execute(
                 "CREATE TABLE IF NOT EXISTS seen_urls (url TEXT PRIMARY KEY)"
