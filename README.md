@@ -8,26 +8,33 @@ Telegram bot that polls Hungarian news sources every 30 minutes, translates arti
 
 ## How it works
 
-1. Fetches RSS feeds from 4 Hungarian news sources (MTI, Index, 444, Telex)
+1. Fetches RSS feeds from 8 Hungarian news sources
 2. Translates article titles to Russian via a local Gemma model (Ollama)
-3. Posts a ≤500-character summary + link to the Telegram channel
-4. Deduplicates via SQLite — each URL is posted only once
-5. Cross-source dedup — compares translated titles using fuzzy matching (`rapidfuzz`, 80% threshold, 24h window) so the same story from different outlets is posted only once
+3. Deduplicates via SQLite — each URL is posted only once
+4. Cross-source dedup — compares translated titles using fuzzy matching (`rapidfuzz`, 80% threshold, 24h window) so the same story from different outlets is posted only once
+5. Tags each article with 1–3 Russian hashtags from a fixed taxonomy via LLM
+6. Posts a ≤500-character summary + tags + source link to the Telegram channel
 
 ## Sources
 
 | Source | URL |
 |--------|-----|
-| MTI | https://www.mti.hu |
-| Index | https://index.hu |
-| 444 | https://444.hu |
 | Telex | https://telex.hu |
+| HVG | https://hvg.hu |
+| 24.hu | https://24.hu |
+| 444 | https://444.hu |
+| Direkt36 | https://www.direkt36.hu |
+| Átlátszó | https://atlatszo.hu |
+| Portfolio | https://www.portfolio.hu |
+| G7 | https://telex.hu/g7 |
 
 ## Stack
 
 - Python 3.12
 - feedparser — RSS fetching
-- Ollama (`translategemma:latest`) — local translation
+- httpx — HTTP client (Ollama API)
+- Ollama (`translategemma:latest`) — local translation + tagging
+- deepl — alternative translator (optional)
 - python-telegram-bot — posting
 - APScheduler — 30-min polling
 - aiosqlite — deduplication
@@ -66,14 +73,16 @@ docker compose up --build
 ```
 bot/
 ├── main.py          # entry point
-├── scheduler.py     # run_once: fetch → translate → post
-├── feeds.py         # RSS fetcher (4 sources)
+├── scheduler.py     # run_once: fetch → translate → dedup → tag → post
+├── feeds.py         # RSS fetcher (8 sources)
+├── tagger.py        # LLM-based tagging (fixed Russian taxonomy, max 3 tags)
 ├── summarizer.py    # ≤500-char trimmer
 ├── poster.py        # Telegram HTML post
 ├── db.py            # SQLite dedup (URL + fuzzy title matching)
 └── translator/
     ├── base.py      # abstract Translator interface
     ├── gemma.py     # Ollama/Gemma implementation
+    ├── deepl.py     # DeepL API implementation
     └── stub.py      # passthrough stub (for testing)
 ```
 
