@@ -1,3 +1,5 @@
+from __future__ import annotations
+from html import escape
 from telegram import Bot
 
 class Poster:
@@ -7,9 +9,9 @@ class Poster:
 
     async def post(self, summary: str, url: str, source: str = "", tags: list[str] | None = None):
         tags_line = ("\n" + " ".join(tags)) if tags else ""
-        source_label = source if source else "Источник"
-        link = f'<a href="{url}">{source_label}</a>'
-        text = f"{summary}{tags_line}\n\n{link}"
+        source_label = escape(source) if source else "Источник"
+        link = f'<a href="{escape(url, quote=True)}">{source_label}</a>'
+        text = f"{escape(summary)}{tags_line}\n\n{link}"
         await self._bot.send_message(
             chat_id=self._channel_id,
             text=text,

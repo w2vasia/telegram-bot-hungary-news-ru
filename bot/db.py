@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 from typing import Optional
 import aiosqlite
@@ -23,6 +24,9 @@ class Database:
             await self._conn.execute(
                 "ALTER TABLE seen_urls ADD COLUMN posted_at TIMESTAMP DEFAULT ''"
             )
+        await self._conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_posted_at ON seen_urls(posted_at)"
+        )
         await self._conn.commit()
 
     async def close(self):
@@ -38,8 +42,16 @@ class Database:
 
     async def mark_seen(self, url: str, title: str = ""):
         await self._conn.execute(
-            "INSERT OR IGNORE INTO seen_urls (url, title, posted_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
+            "INSERT INTO seen_urls (url, title, posted_at) VALUES (?, ?, CURRENT_TIMESTAMP) "
+            "ON CONFLICT(url) DO UPDATE SET title=excluded.title, posted_at=excluded.posted_at",
             (url, title),
+        )
+        await self._conn.commit()
+
+    async def prune(self, keep_days: int = 30):
+        await self._conn.execute(
+            "DELETE FROM seen_urls WHERE posted_at < datetime('now', ?)",
+            (f"-{keep_days} days",),
         )
         await self._conn.commit()
 

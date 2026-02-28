@@ -14,6 +14,12 @@ _SIMILARITY_THRESHOLD = 80
 
 
 async def run_once(db: Database, translator: Translator, poster: Poster):
+    # Prune old entries periodically
+    try:
+        await db.prune()
+    except Exception as e:
+        logger.warning(f"DB prune failed: {e}")
+
     # Phase 1: Fetch all articles from all sources concurrently
     try:
         articles = await fetch_all()
@@ -62,7 +68,7 @@ async def run_once(db: Database, translator: Translator, poster: Poster):
     for article, translated in to_post:
         try:
             summary = summarize(translated)
-            tags = await get_tags(article, translator)
+            tags = await get_tags(translated, translator)
             await poster.post(summary=summary, url=article.url, source=article.source, tags=tags)
         except Exception as e:
             logger.error(f"Failed to post {article.url}: {e}")

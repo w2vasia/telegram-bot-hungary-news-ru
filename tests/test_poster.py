@@ -55,3 +55,18 @@ async def test_poster_uses_source_name_as_link_title():
     await poster.post(summary="Новость", url="https://index.hu/article", source="Index.hu")
     text = mock_bot.send_message.call_args.kwargs["text"]
     assert '<a href="https://index.hu/article">Index.hu</a>' in text
+
+@pytest.mark.asyncio
+async def test_poster_escapes_html_in_summary_and_source():
+    mock_bot = MagicMock()
+    mock_bot.send_message = AsyncMock()
+    poster = Poster(bot=mock_bot, channel_id="@testchannel")
+    await poster.post(
+        summary='Title with <b>HTML</b> & "quotes"',
+        url="https://example.com/a?b=1&c=2",
+        source="A&B",
+    )
+    text = mock_bot.send_message.call_args.kwargs["text"]
+    assert "&lt;b&gt;" in text
+    assert "&amp;B" in text
+    assert 'href="https://example.com/a?b=1&amp;c=2"' in text

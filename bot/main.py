@@ -38,6 +38,7 @@ async def main():
         "interval",
         minutes=30,
         args=[db, translator, poster],
+        max_instances=1,
     )
     scheduler.start()
     logger.info("Bot started. Polling every 30 minutes.")
@@ -59,6 +60,7 @@ async def main():
 
     logger.info("Shutting down...")
     scheduler.shutdown(wait=False)
+    await translator.close()
     await db.close()
     await bot.close()
 
