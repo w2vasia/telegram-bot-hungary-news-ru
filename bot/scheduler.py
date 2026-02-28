@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from bot.db import Database
 from bot.feeds import fetch_all
@@ -18,5 +19,6 @@ async def run_once(db: Database, translator: Translator, poster: Poster):
             await poster.post(summary=summary, url=article.url)
             await db.mark_seen(article.url)
             logger.info(f"Posted: {article.url}")
+            await asyncio.sleep(3)  # avoid Telegram flood control
         except Exception as e:
             logger.error(f"Failed to process {article.url}: {e}")
