@@ -25,15 +25,17 @@ async def test_poster_uses_html_parse_mode():
     assert call_kwargs.get("parse_mode") == "HTML"
 
 @pytest.mark.asyncio
-async def test_poster_includes_tags_when_provided():
+async def test_poster_includes_tags_between_summary_and_link():
     mock_bot = MagicMock()
     mock_bot.send_message = AsyncMock()
     poster = Poster(bot=mock_bot, channel_id="@testchannel")
     await poster.post(summary="Новость", url="https://example.com",
                       tags=["#политика", "#экономика"])
-    call_kwargs = mock_bot.send_message.call_args.kwargs
-    assert "#политика" in call_kwargs["text"]
-    assert "#экономика" in call_kwargs["text"]
+    text = mock_bot.send_message.call_args.kwargs["text"]
+    summary_pos = text.index("Новость")
+    tags_pos = text.index("#политика")
+    link_pos = text.index("https://example.com")
+    assert summary_pos < tags_pos < link_pos
 
 @pytest.mark.asyncio
 async def test_poster_no_tags_line_when_empty():
@@ -41,5 +43,6 @@ async def test_poster_no_tags_line_when_empty():
     mock_bot.send_message = AsyncMock()
     poster = Poster(bot=mock_bot, channel_id="@testchannel")
     await poster.post(summary="Новость", url="https://example.com", tags=[])
-    call_kwargs = mock_bot.send_message.call_args.kwargs
-    assert "##" not in call_kwargs["text"]
+    text = mock_bot.send_message.call_args.kwargs["text"]
+    expected = "Новость\n\n<a href='https://example.com'>Читать полностью</a>"
+    assert text == expected
