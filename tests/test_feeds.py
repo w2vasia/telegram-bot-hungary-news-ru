@@ -2,8 +2,8 @@
 import pytest
 from bot.feeds import Article, fetch_feed, SOURCES
 
-def test_sources_has_four_entries():
-    assert len(SOURCES) == 4
+def test_sources_has_eight_entries():
+    assert len(SOURCES) == 8
 
 def test_sources_all_have_name_and_url():
     for source in SOURCES:

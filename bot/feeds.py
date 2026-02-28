@@ -2,10 +2,14 @@ import feedparser
 from dataclasses import dataclass
 
 SOURCES = [
-    {"name": "MTI", "url": "https://www.mti.hu/rss/"},
-    {"name": "Index", "url": "https://index.hu/24ora/rss/"},
-    {"name": "444", "url": "https://444.hu/feed"},
     {"name": "Telex", "url": "https://telex.hu/rss"},
+    {"name": "HVG", "url": "https://hvg.hu/rss"},
+    {"name": "24.hu", "url": "https://24.hu/feed/"},
+    {"name": "444", "url": "https://444.hu/feed"},
+    {"name": "Direkt36", "url": "https://www.direkt36.hu/feed/"},
+    {"name": "Átlátszó", "url": "https://atlatszo.hu/feed/"},
+    {"name": "Portfolio", "url": "https://www.portfolio.hu/rss/all.xml"},
+    {"name": "G7", "url": "https://telex.hu/rss/g7"},
 ]
 
 @dataclass
