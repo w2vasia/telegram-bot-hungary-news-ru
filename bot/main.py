@@ -4,7 +4,8 @@ import os
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import Bot
 from bot.db import Database
-from bot.translator.deepl import DeepLTranslator
+# TODO: switch to DeepLTranslator once DEEPL_API_KEY is configured
+from bot.translator.stub import StubTranslator
 from bot.poster import Poster
 from bot.scheduler import run_once
 
@@ -17,12 +18,11 @@ logger = logging.getLogger(__name__)
 async def main():
     bot_token = os.environ["TELEGRAM_BOT_TOKEN"]
     channel_id = os.environ["TELEGRAM_CHANNEL_ID"]
-    deepl_key = os.environ["DEEPL_API_KEY"]
 
     db = Database()
     await db.init()
 
-    translator = DeepLTranslator(api_key=deepl_key)
+    translator = StubTranslator()
     bot = Bot(token=bot_token)
     poster = Poster(bot=bot, channel_id=channel_id)
 
