@@ -18,7 +18,7 @@ async def run_once(db: Database, translator: Translator, poster: Poster):
             translated = await translator.translate(article.title)
             summary = summarize(translated)
             tags = await get_tags(article, translator)
-            await poster.post(summary=summary, url=article.url, tags=tags)
+            await poster.post(summary=summary, url=article.url, source=article.source, tags=tags)
             await db.mark_seen(article.url)
             logger.info(f"Posted: {article.url}")
             await asyncio.sleep(3)  # avoid Telegram flood control
