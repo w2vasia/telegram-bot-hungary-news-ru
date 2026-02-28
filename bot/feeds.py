@@ -1,6 +1,6 @@
 import asyncio
 import logging
-import socket
+import urllib.request
 from dataclasses import dataclass
 
 import feedparser
@@ -27,12 +27,9 @@ class Article:
     source: str
 
 def _parse_with_timeout(url: str):
-    old_timeout = socket.getdefaulttimeout()
-    try:
-        socket.setdefaulttimeout(_FEED_TIMEOUT)
-        return feedparser.parse(url)
-    finally:
-        socket.setdefaulttimeout(old_timeout)
+    """Fetch and parse RSS with per-request timeout (thread-safe)."""
+    resp = urllib.request.urlopen(url, timeout=_FEED_TIMEOUT)
+    return feedparser.parse(resp.read())
 
 async def fetch_feed(source: dict) -> list[Article]:
     feed = await asyncio.wait_for(
