@@ -5,4 +5,5 @@ services:
     volumes:
       - ./data:/app/data
       - ./bot:/app/bot
+      - ./tests:/app/tests
     restart: unless-stopped
