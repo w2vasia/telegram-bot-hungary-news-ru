@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import signal
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import Bot
 from bot.db import Database
@@ -14,9 +15,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def _require_env(name: str) -> str:
+    value = os.environ.get(name)
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
+
 async def main():
-    bot_token = os.environ["TELEGRAM_BOT_TOKEN"]
-    channel_id = os.environ["TELEGRAM_CHANNEL_ID"]
+    bot_token = _require_env("TELEGRAM_BOT_TOKEN")
+    channel_id = _require_env("TELEGRAM_CHANNEL_ID")
 
     db = Database()
     await db.init()
@@ -33,13 +40,27 @@ async def main():
         args=[db, translator, poster],
     )
     scheduler.start()
-
     logger.info("Bot started. Polling every 30 minutes.")
-    # Run immediately on startup
+
+    stop_event = asyncio.Event()
+
+    def _handle_signal():
+        logger.info("Shutdown signal received.")
+        stop_event.set()
+
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        loop.add_signal_handler(sig, _handle_signal)
+
+    # Run immediately on startup, then wait for next scheduled run
     await run_once(db, translator, poster)
 
-    # Keep running
-    await asyncio.Event().wait()
+    await stop_event.wait()
+
+    logger.info("Shutting down...")
+    scheduler.shutdown(wait=False)
+    await db.close()
+    await bot.close()
 
 if __name__ == "__main__":
     asyncio.run(main())

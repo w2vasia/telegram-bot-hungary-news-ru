@@ -1,3 +1,4 @@
+import asyncio
 import deepl
 from bot.translator.base import Translator
 
@@ -8,7 +9,8 @@ class DeepLTranslator(Translator):
     async def translate(
         self, text: str, source_lang: str = "HU", target_lang: str = "RU"
     ) -> str:
-        result = self._client.translate_text(
-            text, target_lang=target_lang, source_lang=source_lang
+        result = await asyncio.to_thread(
+            self._client.translate_text,
+            text, target_lang=target_lang, source_lang=source_lang,
         )
         return result.text

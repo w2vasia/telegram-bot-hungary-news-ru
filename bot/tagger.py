@@ -1,8 +1,11 @@
 import logging
+from typing import Protocol
 from bot.feeds import Article
-from bot.translator.base import Translator
 
 logger = logging.getLogger(__name__)
+
+class LLMGenerator(Protocol):
+    async def generate(self, prompt: str) -> str: ...
 
 CATEGORIES = frozenset([
     # Politics & Society
@@ -23,7 +26,7 @@ CATEGORIES = frozenset([
 MAX_TAGS = 3
 _CATEGORIES_STR = ", ".join(sorted(CATEGORIES))
 
-async def get_tags(article: Article, translator: Translator) -> list[str]:
+async def get_tags(article: Article, llm: LLMGenerator) -> list[str]:
     try:
         prompt = (
             f"Classify this Hungarian news headline into 1-3 tags. "
@@ -31,7 +34,7 @@ async def get_tags(article: Article, translator: Translator) -> list[str]:
             f"Return only tag names from the list, space-separated, nothing else. "
             f"Headline: {article.title}"
         )
-        result = await translator.translate(prompt, source_lang="HU", target_lang="RU")
+        result = await llm.generate(prompt)
         words = result.lower().split()
         valid = [f"#{w.strip('.,!?;:')}" for w in words if w.strip('.,!?;:') in CATEGORIES]
         return valid[:MAX_TAGS]

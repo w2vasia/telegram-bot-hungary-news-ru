@@ -17,7 +17,7 @@ def test_categories_contains_expected_tags():
 @pytest.mark.asyncio
 async def test_returns_valid_hashtags_from_gemma():
     mock_translator = AsyncMock()
-    mock_translator.translate = AsyncMock(return_value="политика экономика")
+    mock_translator.generate = AsyncMock(return_value="политика экономика")
     article = Article(title="Teszt cikk", url="http://x.com", source="HVG")
     tags = await get_tags(article, mock_translator)
     assert tags == ["#политика", "#экономика"]
@@ -25,7 +25,7 @@ async def test_returns_valid_hashtags_from_gemma():
 @pytest.mark.asyncio
 async def test_discards_hallucinated_words():
     mock_translator = AsyncMock()
-    mock_translator.translate = AsyncMock(return_value="политика nonsense выборы фантазия")
+    mock_translator.generate = AsyncMock(return_value="политика nonsense выборы фантазия")
     article = Article(title="Teszt", url="http://x.com", source="444")
     tags = await get_tags(article, mock_translator)
     assert "#политика" in tags
@@ -36,7 +36,7 @@ async def test_discards_hallucinated_words():
 @pytest.mark.asyncio
 async def test_max_three_tags():
     mock_translator = AsyncMock()
-    mock_translator.translate = AsyncMock(return_value="политика экономика спорт культура мир")
+    mock_translator.generate = AsyncMock(return_value="политика экономика спорт культура мир")
     article = Article(title="T", url="http://x.com", source="Telex")
     tags = await get_tags(article, mock_translator)
     assert len(tags) == 3
@@ -44,7 +44,7 @@ async def test_max_three_tags():
 @pytest.mark.asyncio
 async def test_returns_empty_on_error():
     mock_translator = AsyncMock()
-    mock_translator.translate = AsyncMock(side_effect=Exception("timeout"))
+    mock_translator.generate = AsyncMock(side_effect=Exception("timeout"))
     article = Article(title="Hír", url="http://x.com", source="Telex")
     tags = await get_tags(article, mock_translator)
     assert tags == []
@@ -52,7 +52,7 @@ async def test_returns_empty_on_error():
 @pytest.mark.asyncio
 async def test_returns_empty_when_no_valid_tags():
     mock_translator = AsyncMock()
-    mock_translator.translate = AsyncMock(return_value="nonsense garbage invalid")
+    mock_translator.generate = AsyncMock(return_value="nonsense garbage invalid")
     article = Article(title="Teszt", url="http://x.com", source="Telex")
     tags = await get_tags(article, mock_translator)
     assert tags == []
