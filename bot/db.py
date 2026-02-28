@@ -18,7 +18,7 @@ class Database:
                 await db.execute("ALTER TABLE seen_urls ADD COLUMN title TEXT DEFAULT ''")
             if "posted_at" not in cols:
                 await db.execute(
-                    "ALTER TABLE seen_urls ADD COLUMN posted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+                    "ALTER TABLE seen_urls ADD COLUMN posted_at TIMESTAMP DEFAULT ''"
                 )
             await db.commit()
 
