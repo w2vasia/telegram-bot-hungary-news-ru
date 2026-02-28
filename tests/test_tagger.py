@@ -1,7 +1,10 @@
 # tests/test_tagger.py
-import pytest
 from unittest.mock import AsyncMock
-from bot.tagger import get_tags, CATEGORIES
+
+import pytest
+
+from bot.tagger import CATEGORIES, get_tags
+
 
 def test_categories_is_nonempty_frozenset():
     assert isinstance(CATEGORIES, frozenset)

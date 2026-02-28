@@ -1,8 +1,9 @@
 import asyncio
 import logging
 import socket
-import feedparser
 from dataclasses import dataclass
+
+import feedparser
 
 logger = logging.getLogger(__name__)
 

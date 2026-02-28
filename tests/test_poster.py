@@ -1,7 +1,10 @@
 # tests/test_poster.py
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
 from bot.poster import Poster
+
 
 @pytest.mark.asyncio
 async def test_poster_sends_message():

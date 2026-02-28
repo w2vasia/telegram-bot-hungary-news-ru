@@ -1,6 +1,6 @@
 # tests/test_feeds.py
-import pytest
-from bot.feeds import Article, fetch_feed, SOURCES
+from bot.feeds import SOURCES, Article
+
 
 def test_sources_has_eight_entries():
     assert len(SOURCES) == 8

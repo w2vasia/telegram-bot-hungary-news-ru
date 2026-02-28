@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 import asyncio
 import logging
 from html import escape
+
 from telegram import Bot
 from telegram.error import RetryAfter
 

@@ -1,9 +1,11 @@
 from __future__ import annotations
+
 import asyncio
 import os
-from typing import Optional
+
 import aiosqlite
 from rapidfuzz.fuzz import token_sort_ratio
+
 
 class Database:
     def __init__(self, path: str = "data/seen.db"):
@@ -39,11 +41,10 @@ class Database:
             self._conn = None
 
     async def is_seen(self, url: str) -> bool:
-        async with self._lock:
-            async with self._conn.execute(
-                "SELECT 1 FROM seen_urls WHERE url = ?", (url,)
-            ) as cursor:
-                return await cursor.fetchone() is not None
+        async with self._lock, self._conn.execute(
+            "SELECT 1 FROM seen_urls WHERE url = ?", (url,)
+        ) as cursor:
+            return await cursor.fetchone() is not None
 
     async def mark_seen(self, url: str, title: str = ""):
         async with self._lock:
@@ -62,15 +63,14 @@ class Database:
             )
             await self._conn.commit()
 
-    async def find_similar(self, title: str, threshold: int = 80, hours: int = 24) -> Optional[str]:
-        async with self._lock:
-            async with self._conn.execute(
-                "SELECT title FROM seen_urls WHERE title != '' "
-                "AND posted_at >= datetime('now', ?) "
-                "ORDER BY posted_at DESC LIMIT 5000",
-                (f"-{hours} hours",),
-            ) as cursor:
-                rows = await cursor.fetchall()
+    async def find_similar(self, title: str, threshold: int = 80, hours: int = 24) -> str | None:
+        async with self._lock, self._conn.execute(
+            "SELECT title FROM seen_urls WHERE title != '' "
+            "AND posted_at >= datetime('now', ?) "
+            "ORDER BY posted_at DESC LIMIT 5000",
+            (f"-{hours} hours",),
+        ) as cursor:
+            rows = await cursor.fetchall()
         for (existing,) in rows:
             if token_sort_ratio(title, existing) >= threshold:
                 return existing

@@ -2,12 +2,14 @@ import asyncio
 import logging
 import os
 import signal
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import Bot
+
 from bot.db import Database
-from bot.translator.gemma import GemmaTranslator, OLLAMA_URL
 from bot.poster import Poster
 from bot.scheduler import run_once
+from bot.translator.gemma import OLLAMA_URL, GemmaTranslator
 
 try:
     from dotenv import load_dotenv
@@ -76,7 +78,7 @@ async def main():
     # Run immediately on startup with timeout
     try:
         await asyncio.wait_for(run_once(db, translator, poster), timeout=_STARTUP_TIMEOUT)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error(f"Initial run_once timed out after {_STARTUP_TIMEOUT}s")
     except Exception as e:
         logger.error(f"Initial run_once failed: {e}")

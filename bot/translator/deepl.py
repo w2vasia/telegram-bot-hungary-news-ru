@@ -1,6 +1,9 @@
 import asyncio
+
 import deepl
+
 from bot.translator.base import Translator
+
 
 class DeepLTranslator(Translator):
     def __init__(self, api_key: str):

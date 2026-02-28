@@ -1,8 +1,10 @@
 # tests/test_gemma.py
 import json
-import pytest
+from unittest.mock import AsyncMock, MagicMock
+
 import httpx
-from unittest.mock import AsyncMock, patch, MagicMock
+import pytest
+
 from bot.translator.gemma import GemmaTranslator
 
 
@@ -56,8 +58,6 @@ async def test_generate_invalid_json_raises(translator):
 
 @pytest.mark.asyncio
 async def test_generate_retries_on_connect_error(translator):
-    fail = AsyncMock(side_effect=httpx.ConnectError("refused"))
-    success = AsyncMock(return_value=_mock_response({"response": "ok"}))
     translator._client.post = AsyncMock(side_effect=[
         httpx.ConnectError("refused"),
         _mock_response({"response": "ok"}),
