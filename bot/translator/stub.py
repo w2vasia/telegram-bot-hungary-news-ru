@@ -4,3 +4,6 @@ from bot.translator.base import Translator
 class StubTranslator(Translator):
     async def translate(self, text: str, source_lang: str = "HU", target_lang: str = "RU") -> str:
         return text
+
+    async def generate(self, prompt: str) -> str:
+        return ""

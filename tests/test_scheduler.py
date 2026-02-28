@@ -1,14 +1,20 @@
 # tests/test_scheduler.py
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+import bot.scheduler as scheduler_mod
 from bot.scheduler import run_once
 from bot.feeds import Article
+
+@pytest.fixture(autouse=True)
+def reset_prune_counter():
+    scheduler_mod._prune_fail_count = 0
 
 def make_article(url="https://telex.hu/1", title="Teszt cikk", source="Telex"):
     return Article(title=title, url=url, source=source)
 
 def make_deps(articles=None):
     db = MagicMock()
+    db.prune = AsyncMock()
     db.is_seen = AsyncMock(return_value=False)
     db.find_similar = AsyncMock(return_value=None)
     db.mark_seen = AsyncMock()

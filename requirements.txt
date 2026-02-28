@@ -7,3 +7,4 @@ aiosqlite==0.20.0
 rapidfuzz==3.9.7
 pytest==8.3.2
 pytest-asyncio==0.23.8
+tenacity>=8.2

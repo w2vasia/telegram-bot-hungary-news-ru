@@ -32,17 +32,6 @@ async def main():
     bot = Bot(token=bot_token)
     poster = Poster(bot=bot, channel_id=channel_id)
 
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(
-        run_once,
-        "interval",
-        minutes=30,
-        args=[db, translator, poster],
-        max_instances=1,
-    )
-    scheduler.start()
-    logger.info("Bot started. Polling every 30 minutes.")
-
     stop_event = asyncio.Event()
 
     def _handle_signal():
@@ -53,8 +42,19 @@ async def main():
     for sig in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(sig, _handle_signal)
 
-    # Run immediately on startup, then wait for next scheduled run
+    # Run immediately on startup before scheduling
     await run_once(db, translator, poster)
+
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(
+        run_once,
+        "interval",
+        minutes=30,
+        args=[db, translator, poster],
+        max_instances=1,
+    )
+    scheduler.start()
+    logger.info("Bot started. Polling every 30 minutes.")
 
     await stop_event.wait()
 

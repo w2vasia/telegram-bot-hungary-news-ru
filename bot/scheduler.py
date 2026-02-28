@@ -11,14 +11,22 @@ from bot.tagger import get_tags
 logger = logging.getLogger(__name__)
 
 _SIMILARITY_THRESHOLD = 80
+_prune_fail_count = 0
+_PRUNE_FAIL_LIMIT = 10
 
 
 async def run_once(db: Database, translator: Translator, poster: Poster):
+    global _prune_fail_count
     # Prune old entries periodically
     try:
         await db.prune()
+        _prune_fail_count = 0
     except Exception as e:
-        logger.warning(f"DB prune failed: {e}")
+        _prune_fail_count += 1
+        if _prune_fail_count >= _PRUNE_FAIL_LIMIT:
+            logger.error(f"DB prune failed {_prune_fail_count} times consecutively: {e}")
+            raise
+        logger.warning(f"DB prune failed ({_prune_fail_count}/{_PRUNE_FAIL_LIMIT}): {e}")
 
     # Phase 1: Fetch all articles from all sources concurrently
     try:

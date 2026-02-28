@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import socket
 import feedparser
 from dataclasses import dataclass
 
@@ -24,10 +25,18 @@ class Article:
     url: str
     source: str
 
+def _parse_with_timeout(url: str):
+    old_timeout = socket.getdefaulttimeout()
+    try:
+        socket.setdefaulttimeout(_FEED_TIMEOUT)
+        return feedparser.parse(url)
+    finally:
+        socket.setdefaulttimeout(old_timeout)
+
 async def fetch_feed(source: dict) -> list[Article]:
     feed = await asyncio.wait_for(
-        asyncio.to_thread(feedparser.parse, source["url"]),
-        timeout=_FEED_TIMEOUT,
+        asyncio.to_thread(_parse_with_timeout, source["url"]),
+        timeout=_FEED_TIMEOUT + 5,
     )
     if feed.bozo and not feed.entries:
         logger.warning(f"Feed {source['name']} failed: {feed.bozo_exception}")

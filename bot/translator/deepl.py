@@ -14,3 +14,6 @@ class DeepLTranslator(Translator):
             text, target_lang=target_lang, source_lang=source_lang,
         )
         return result.text
+
+    async def close(self) -> None:
+        pass
