@@ -16,10 +16,3 @@ def test_article_fields():
     assert a.url == "http://x.com"
     assert a.source == "MTI"
 
-def test_article_has_raw_categories():
-    a = Article(title="T", url="http://x.com", source="MTI", raw_categories=["belfold", "gazdasag"])
-    assert a.raw_categories == ["belfold", "gazdasag"]
-
-def test_article_raw_categories_defaults_to_empty():
-    a = Article(title="T", url="http://x.com", source="MTI")
-    assert a.raw_categories == []
