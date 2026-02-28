@@ -24,6 +24,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 _STARTUP_TIMEOUT = float(os.environ.get("STARTUP_TIMEOUT", "300"))
+_POLL_INTERVAL_MINUTES = int(os.environ.get("POLL_INTERVAL_MINUTES", "5"))
 
 def _require_env(name: str) -> str:
     value = os.environ.get(name)
@@ -87,14 +88,14 @@ async def main():
     scheduler.add_job(
         run_once,
         "interval",
-        minutes=30,
+        minutes=_POLL_INTERVAL_MINUTES,
         args=[db, translator, poster],
         max_instances=1,
-        misfire_grace_time=900,  # run if ≤15 min late
-        coalesce=True,           # merge piled-up runs into one
+        misfire_grace_time=_POLL_INTERVAL_MINUTES * 60 // 2,
+        coalesce=True,
     )
     scheduler.start()
-    logger.info("Bot started. Polling every 30 minutes.")
+    logger.info(f"Bot started. Polling every {_POLL_INTERVAL_MINUTES} minutes.")
 
     await stop_event.wait()
 

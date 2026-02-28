@@ -103,7 +103,8 @@ async def run_once(db: Database, translator: Translator, poster: Poster):
 
         try:
             summary = summarize(translated)
-            tags = await get_tags(translated, translator)
+            # tags = await get_tags(translated, translator)
+            tags: list[str] = []
             await poster.post(summary=summary, url=article.url, source=article.source, tags=tags)
         except Exception as e:
             logger.error(f"Failed to post {article.url}: {e}")
