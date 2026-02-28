@@ -6,6 +6,6 @@ def summarize(text: str) -> str:
         return text
     truncated = text[:MAX_CHARS - 1]
     last_space = truncated.rfind(" ")
-    if last_space > MAX_CHARS // 2:
+    if last_space != -1:
         truncated = truncated[:last_space]
     return truncated.rstrip() + "…"
