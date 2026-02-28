@@ -11,7 +11,8 @@ Telegram bot that polls Hungarian news sources every 30 minutes, translates arti
 1. Fetches RSS feeds from 4 Hungarian news sources (MTI, Index, 444, Telex)
 2. Translates article titles to Russian via a local Gemma model (Ollama)
 3. Posts a ≤500-character summary + link to the Telegram channel
-4. Deduplicates via SQLite — each article is posted only once
+4. Deduplicates via SQLite — each URL is posted only once
+5. Cross-source dedup — compares translated titles using fuzzy matching (`rapidfuzz`, 80% threshold, 24h window) so the same story from different outlets is posted only once
 
 ## Sources
 
@@ -30,6 +31,7 @@ Telegram bot that polls Hungarian news sources every 30 minutes, translates arti
 - python-telegram-bot — posting
 - APScheduler — 30-min polling
 - aiosqlite — deduplication
+- rapidfuzz — cross-source fuzzy title dedup
 - Docker / docker-compose
 
 ## Setup
@@ -68,7 +70,7 @@ bot/
 ├── feeds.py         # RSS fetcher (4 sources)
 ├── summarizer.py    # ≤500-char trimmer
 ├── poster.py        # Telegram HTML post
-├── db.py            # SQLite deduplication
+├── db.py            # SQLite dedup (URL + fuzzy title matching)
 └── translator/
     ├── base.py      # abstract Translator interface
     ├── gemma.py     # Ollama/Gemma implementation
