@@ -16,6 +16,7 @@ SOURCES = [
     {"name": "Átlátszó", "url": "https://atlatszo.hu/feed/"},
     {"name": "Portfolio", "url": "https://www.portfolio.hu/rss/all.xml"},
     {"name": "G7", "url": "https://telex.hu/rss/g7"},
+    {"name": "Daily News Hungary", "url": "https://dailynewshungary.com/rss"},
 ]
 
 _FEED_TIMEOUT = 30

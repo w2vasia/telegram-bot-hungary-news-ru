@@ -19,7 +19,7 @@ _PRUNE_FAIL_LIMIT = 10
 _POST_DELAY = float(os.environ.get("POST_DELAY", "3"))
 
 
-async def run_once(db: Database, translator: Translator, poster: Poster):
+async def run_once(db: Database, translator: Translator, poster_ru: Poster, poster_en: "Poster | None" = None):
     global _prune_fail_count
     # Prune old entries periodically
     try:
@@ -105,10 +105,18 @@ async def run_once(db: Database, translator: Translator, poster: Poster):
             summary = summarize(translated)
             # tags = await get_tags(translated, translator)
             tags: list[str] = []
-            await poster.post(summary=summary, url=article.url, source=article.source, tags=tags)
+            await poster_ru.post(summary=summary, url=article.url, source=article.source, tags=tags)
         except Exception as e:
             logger.error(f"Failed to post {article.url}: {e}")
             continue
+
+        if poster_en is not None:
+            try:
+                translated_en = await translator.translate(article.title, source_lang="HU", target_lang="EN")
+                summary_en = summarize(translated_en)
+                await poster_en.post(summary=summary_en, url=article.url, source=article.source, tags=tags)
+            except Exception as e:
+                logger.error(f"Failed to post EN for {article.url}: {e}")
 
         logger.info(f"Posted: {article.url}")
         await asyncio.sleep(_POST_DELAY)

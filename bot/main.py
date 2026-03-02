@@ -54,14 +54,16 @@ async def _check_telegram(bot: Bot):
 
 async def main():
     bot_token = _require_env("TELEGRAM_BOT_TOKEN")
-    channel_id = _require_env("TELEGRAM_CHANNEL_ID")
+    channel_id_ru = _require_env("TELEGRAM_CHANNEL_ID_RU")
+    channel_id_en = os.environ.get("TELEGRAM_CHANNEL_ID_EN")
 
     db = Database()
     await db.init()
 
     translator = GemmaTranslator()
     bot = Bot(token=bot_token)
-    poster = Poster(bot=bot, channel_id=channel_id)
+    poster_ru = Poster(bot=bot, channel_id=channel_id_ru)
+    poster_en = Poster(bot=bot, channel_id=channel_id_en) if channel_id_en else None
 
     stop_event = asyncio.Event()
 
@@ -78,7 +80,7 @@ async def main():
 
     # Run immediately on startup with timeout
     try:
-        await asyncio.wait_for(run_once(db, translator, poster), timeout=_STARTUP_TIMEOUT)
+        await asyncio.wait_for(run_once(db, translator, poster_ru, poster_en), timeout=_STARTUP_TIMEOUT)
     except TimeoutError:
         logger.error(f"Initial run_once timed out after {_STARTUP_TIMEOUT}s")
     except Exception as e:
@@ -89,7 +91,7 @@ async def main():
         run_once,
         "interval",
         minutes=_POLL_INTERVAL_MINUTES,
-        args=[db, translator, poster],
+        args=[db, translator, poster_ru, poster_en],
         max_instances=1,
         misfire_grace_time=_POLL_INTERVAL_MINUTES * 60 // 2,
         coalesce=True,
