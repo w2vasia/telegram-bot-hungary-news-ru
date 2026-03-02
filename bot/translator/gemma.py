@@ -43,8 +43,8 @@ class GemmaTranslator(Translator):
         return result
 
     async def translate(self, text: str, source_lang: str = "HU", target_lang: str = "RU") -> str:
-        prompt = (
+        return await self.generate(
             f"Translate the following {source_lang} text to {target_lang}. "
+            f"The translation must sound natural and fluent to a native {target_lang} speaker — not literal or awkward. "
             f"Return only the translation, no explanations:\n\n{text}"
         )
-        return await self.generate(prompt)
